@@ -10,15 +10,12 @@
 
 ## Распределение страниц
 
-- Кутузов Р. - Главная страница (/), Расписание (/schedule), Контакты (/contacts)
-- Портнягин Д. - Афиша (/films), Фильм (/films/*id*)
+- Кутузов Р. - Главная (`/`), Расписание (`/schedule`), Контакты (`/contacts`)
+- Портнягин Д. - Афиша (`/films`), Фильм (`/films/<id>`)
 
 ## Технологии
 
-- Python 3
-- Flask
-- Jinja2
-- orjson 
+![Python](https://img.shields.io/badge/Python-3-grey?logo=python&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-grey?logo=flask&logoColor=white) ![Jinja2](https://img.shields.io/badge/Jinja2-grey?logo=jinja&logoColor=white) ![orjson](https://img.shields.io/badge/orjson-grey)
 
 ## Установка и запуск
 ```bash
@@ -30,11 +27,11 @@ py run.py
 
 ## Маршруты
 
-- / - главная
-- /films - афиша
-- /films/<id> - страница фильма
-- /schedule - расписание
-- /contacts - контакты
+- `/` - главная
+- `/films` - афиша
+- `/films/<id>` - страница фильма
+- `/schedule` - расписание
+- `/contacts` - контакты
 
 ## Скриншоты
 
