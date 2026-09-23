@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Расписание - Кинотеатр{% endblock %}
+
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/schedule.css') }}">{% endblock %}
+
+{% block content %}
+<h1>Расписание сеансов</h1>
+<p class="subtitle">Сеансы на сегодня. Билеты можно купить в кассе или онлайн.</p>
+
+<table class="schedule">
+    <thead>
+        <tr>
+            <th>Время</th>
+            <th>Фильм</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in schedule %}
+        <tr>
+            <td><span class="time">{{ row.time }}</span></td>
+            <td><a href="{{ url_for('film', film_id=row.film.id) }}">{{ row.film.title }}</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p>Расписание может меняться. Актуальные сеансы уточняйте в кассе кинотеатра.</p>
+{% endblock %}

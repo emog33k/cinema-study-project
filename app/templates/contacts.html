@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Контакты - Кинотеатр{% endblock %}
+
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/contacts.css') }}">{% endblock %}
+
+{% block content %}
+<h1>Контакты</h1>
+<p class="subtitle">Как с нами связаться?</p>
+
+<ul class="contacts">
+    <li><b>Адрес:</b> Будапештская ул., 38, корп. 6, Санкт-Петербург</li>
+    <li><b>Телефон:</b> +7 (812) 123-45-67</li>
+    <li><b>E-mail:</b> info@ranepa.ru</li>
+    <li><b>Часы работы:</b> ежедневно с 09:00 до 00:00</li>
+</ul>
+
+<h2>Как добраться</h2>
+<p>
+    От метро "Проспект славы", петляя по дворам, ориентируясь по "Яндекс Картам", можно выйти к нашему прекрасному заведению.
+</p>
+{% endblock %}

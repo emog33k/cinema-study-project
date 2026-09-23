@@ -1,0 +1,29 @@
+.schedule {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background: var(--surface);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.schedule th,
+.schedule td {
+    text-align: left;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+}
+
+.schedule th { background: var(--strong); color: var(--on-strong); }
+.schedule a { color: var(--ink); text-decoration: none; font-weight: 500; }
+.schedule a:hover { color: var(--accent); }
+
+.time {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--time-bg);
+    color: var(--ink);
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - Кинотеатр{% endblock %}
+
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+
+{% block content %}
+<h1>Кинотеатр</h1>
+<p class="subtitle">Афиша, расписание сеансов и контакты кинотеатра.</p>
+
+<img src="{{ url_for('static', filename='images/example.webp') }}" alt="Кинотеатр" class="home-banner">
+{% endblock %}
