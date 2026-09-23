@@ -35,3 +35,17 @@ py run.py
 - /films/<id> - страница фильма
 - /schedule - расписание
 - /contacts - контакты
+
+## Скриншоты
+
+**Главная**
+
+![Главная](.github/home.jpeg)
+
+**Расписание**
+
+![Расписание](.github/schedule.jpeg)
+
+**Контакты**
+
+![Контакты](.github/contacts.jpeg)
