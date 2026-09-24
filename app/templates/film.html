@@ -1,7 +1,73 @@
 {% extends "base.html" %}
 
-{% block title %}Фильм - Кинотеатр{% endblock %}
+{% block title %}{{ movie.title }} - Кинотеатр{% endblock %}
+
+{% block styles %}
+<style>
+    .film-page {
+        display: grid;
+        grid-template-columns: minmax(220px, 320px) 1fr;
+        gap: 36px;
+        align-items: start;
+        margin-top: 24px;
+    }
+
+    .film-poster-large {
+        width: 100%;
+        max-width: 320px;
+        aspect-ratio: 2 / 3;
+        object-fit: cover;
+        display: block;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: var(--time-bg);
+    }
+
+    .film-details h1 {
+        margin-bottom: 12px;
+    }
+
+    .genre {
+        display: inline-block;
+        padding: 6px 14px;
+        margin: 0 0 20px;
+        border-radius: 999px;
+        background: var(--time-bg);
+        color: var(--ink);
+        font-size: 14px;
+    }
+
+    .back {
+        margin-top: 28px;
+    }
+
+    @media (max-width: 680px) {
+        .film-page {
+            grid-template-columns: 1fr;
+        }
+
+        .film-poster-large {
+            max-width: 280px;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<h1>Фильм</h1>
+<div class="film-page">
+    <div>
+        <img
+            class="film-poster-large"
+            src="{{ url_for('static', filename='images/' ~ movie.poster) }}"
+            alt="Постер фильма «{{ movie.title }}»"
+        >
+    </div>
+
+    <section class="film-details">
+        <h1>{{ movie.title }}</h1>
+        <p class="genre">{{ movie.genre }}</p>
+        <p>{{ movie.description }}</p>
+        <a class="btn back" href="{{ url_for('films') }}">← Вернуться в афишу</a>
+    </section>
+</div>
 {% endblock %}
