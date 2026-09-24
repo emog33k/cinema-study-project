@@ -39,6 +39,14 @@ py run.py
 
 ![Главная](.github/home.jpeg)
 
+**Афиша**
+
+![Афиша](.github/films.jpeg)
+
+**Информация о фильме**
+
+![Информация о фильме](.github/film_detail.jpeg)
+
 **Расписание**
 
 ![Расписание](.github/schedule.jpeg)
