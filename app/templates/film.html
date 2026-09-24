@@ -6,10 +6,11 @@
 <style>
     .film-page {
         display: grid;
-        grid-template-columns: minmax(220px, 320px) 1fr;
-        gap: 36px;
+        grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+        gap: clamp(40px, 7vw, 110px);
         align-items: start;
-        margin-top: 24px;
+        margin: 18px auto 0;
+        max-width: 1180px;
     }
 
     .film-poster-large {
@@ -25,6 +26,7 @@
 
     .film-details h1 {
         margin-bottom: 12px;
+        overflow-wrap: anywhere;
     }
 
     .genre {
@@ -40,6 +42,30 @@
     .back {
         margin-top: 28px;
     }
+
+    .review-section { margin: 64px auto 0; max-width: 1180px; }
+    .rating-summary { display: flex; align-items: center; gap: 14px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+    .rating-value { font-family: 'Unbounded', sans-serif; font-size: 28px; color: var(--ink); }
+    .stars { display: inline-flex; gap: 3px; }
+    .rating-star { color: var(--muted); font-size: 24px; line-height: 1; }
+    .rating-star.is-filled { color: var(--accent); }
+    .film-description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 8; overflow: hidden; max-width: 720px; }
+    .review-form { display: grid; gap: 12px; margin-top: 20px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+    .review-form fieldset { border: 0; padding: 0; margin: 0; }
+    .review-form legend { padding: 0; margin-bottom: 4px; }
+    .review-form input, .review-form textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); color: var(--text); font: inherit; }
+    .review-form textarea { min-height: 90px; resize: vertical; }
+    .rating-picker { display: flex; gap: 3px; margin: 4px 0 2px; }
+    .rating-picker button { padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: 32px; line-height: 1; transition: color .15s ease, transform .15s ease; }
+    .rating-picker button.is-filled, .rating-picker button:hover { color: var(--accent); }
+    .rating-picker button:hover { transform: scale(1.12); }
+    .rating-hint { color: var(--muted); font-size: 13px; }
+    .review-form small, .review-error { color: var(--muted); }
+    .review-error { color: var(--accent); }
+    .review-list { display: grid; gap: 12px; margin-top: 20px; }
+    .review-item { padding: 15px; border-bottom: 1px solid var(--line); }
+    .review-item strong { color: var(--ink); }
+    .review-item p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; overflow-wrap: anywhere; margin-bottom: 0; }
 
     @media (max-width: 680px) {
         .film-page {
@@ -60,14 +86,102 @@
             class="film-poster-large"
             src="{{ url_for('static', filename='images/' ~ movie.poster) }}"
             alt="Постер фильма «{{ movie.title }}»"
+            loading="eager"
+            decoding="async"
         >
     </div>
 
     <section class="film-details">
         <h1>{{ movie.title }}</h1>
         <p class="genre">{{ movie.genre }}</p>
-        <p>{{ movie.description }}</p>
+        <p class="film-description" title="{{ movie.description }}">{{ movie.description }}</p>
         <a class="btn back" href="{{ url_for('films') }}">← Вернуться в афишу</a>
     </section>
 </div>
+
+<section class="review-section" data-reviews data-film-id="{{ movie.id }}">
+    <h2>Отзывы и оценки</h2>
+    <div class="rating-summary"><span class="rating-value" data-rating-average>—</span><span><span class="stars" data-rating-stars>{% for _ in range(5) %}<span class="rating-star">★</span>{% endfor %}</span><br><small data-rating-count>Пока нет оценок</small></span></div>
+    <form class="review-form" data-review-form novalidate>
+        <label>Ваше имя<input name="name" required minlength="2" maxlength="40" pattern="[A-Za-zА-Яа-яЁё0-9 .'-]+" autocomplete="name"></label>
+        <fieldset>
+            <legend>Оценка фильма</legend>
+            <div class="rating-picker" data-rating-picker>
+                {% for value in range(1, 6) %}
+                <button type="button" data-rating-value="{{ value }}" aria-label="{{ value }} из 5">★</button>
+                {% endfor %}
+            </div>
+            <input name="rating" type="hidden" data-rating-input required>
+            <span class="rating-hint" data-rating-hint>Выберите оценку</span>
+        </fieldset>
+        <label>Отзыв<textarea name="text" required minlength="10" maxlength="500"></textarea></label>
+        <small>От 10 до 500 символов. Отзыв сохраняется на сервере.</small>
+        <p class="review-error" data-review-error role="alert" aria-live="polite" hidden></p>
+        <button class="btn" type="submit">Оставить отзыв</button>
+    </form>
+    <div class="review-list" data-review-list></div>
+</section>
+
+<script>
+const reviewBox = document.querySelector('[data-reviews]');
+if (reviewBox) {
+    const id = reviewBox.dataset.filmId;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    let reviews = [];
+    const form = reviewBox.querySelector('[data-review-form]');
+    const ratingHint = reviewBox.querySelector('[data-rating-hint]');
+    const ratingInput = reviewBox.querySelector('[data-rating-input]');
+    const ratingButtons = [...reviewBox.querySelectorAll('.rating-picker [data-rating-value]')];
+    const setRating = value => {
+        ratingInput.value = value;
+        ratingButtons.forEach((button, index) => button.classList.toggle('is-filled', index < value));
+        ratingHint.textContent = `${value} из 5`;
+    };
+    ratingButtons.forEach(button => button.addEventListener('click', () => setRating(Number(button.dataset.ratingValue))));
+    const escapeHtml = value => value.replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]));
+    const renderReviews = () => {
+        const average = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0;
+        reviewBox.querySelector('[data-rating-average]').textContent = average ? average.toFixed(1) : '—';
+        const roundedAverage = Math.round(average);
+        reviewBox.querySelector('[data-rating-stars]').innerHTML = Array.from({length: 5}, (_, index) => `<span class="rating-star${index < roundedAverage ? ' is-filled' : ''}">★</span>`).join('');
+        reviewBox.querySelector('[data-rating-count]').textContent = reviews.length ? `${reviews.length} оценок` : 'Пока нет оценок';
+        reviewBox.querySelector('[data-review-list]').innerHTML = reviews.map(review => {
+            const shortText = review.text.length > 240 ? `${review.text.slice(0, 240).trimEnd()}…` : review.text;
+            const reviewStars = Array.from({length: 5}, (_, index) => `<span class="rating-star${index < review.rating ? ' is-filled' : ''}">★</span>`).join('');
+            return `<article class="review-item"><strong>${escapeHtml(review.name)}</strong> <span class="stars">${reviewStars}</span><p title="${escapeHtml(review.text)}">${escapeHtml(shortText)}</p></article>`;
+        }).join('');
+    };
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const data = new FormData(form);
+        const name = data.get('name').trim();
+        const text = data.get('text').trim();
+        const rating = Number(data.get('rating'));
+        const error = reviewBox.querySelector('[data-review-error]');
+        if (name.length < 2 || text.length < 10 || rating < 1 || rating > 5) { error.textContent = 'Проверьте имя, оценку и текст отзыва.'; error.hidden = false; return; }
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+        const response = await fetch(`/api/films/${id}/reviews`, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken}, body: JSON.stringify({name, text, rating})});
+        if (!response.ok) {
+            const result = await response.json().catch(() => ({}));
+            error.textContent = result.error || 'Не удалось сохранить отзыв.';
+            error.hidden = false;
+            return;
+        }
+        reviews.unshift(await response.json());
+        form.reset();
+        setRating(0);
+        ratingHint.textContent = 'Выберите оценку';
+        error.hidden = true;
+        renderReviews();
+    });
+    fetch(`/api/films/${id}/reviews`)
+        .then(response => response.ok ? response.json() : Promise.reject())
+        .then(data => { reviews = data.reverse(); renderReviews(); })
+        .catch(() => {
+            const error = reviewBox.querySelector('[data-review-error]');
+            error.textContent = 'Не удалось загрузить отзывы.';
+            error.hidden = false;
+        });
+}
+</script>
 {% endblock %}

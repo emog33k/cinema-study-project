@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Страница не найдена - Кинотеатр{% endblock %}
+{% block content %}
+<section class="error-page"><p class="eyebrow">Ошибка 404</p><h1>Страница не найдена</h1><p class="subtitle">Похоже, такой страницы больше нет или адрес указан неверно.</p><a class="btn" href="{{ url_for('index') }}">Вернуться на главную</a></section>
+{% endblock %}
