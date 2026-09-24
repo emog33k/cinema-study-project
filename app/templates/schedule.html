@@ -8,11 +8,21 @@
 <h1>Расписание сеансов</h1>
 <p class="subtitle">Сеансы на сегодня. Билеты можно купить в кассе или онлайн.</p>
 
+<aside class="reminder-help">
+    <span class="reminder-help-icon" aria-hidden="true">🔔</span>
+    <div>
+        <strong>Как поставить напоминание?</strong>
+        <p>Нажмите «Напомнить» напротив сеанса и разрешите уведомления. Браузер напомнит за 15 минут, пока эта вкладка открыта.</p>
+    </div>
+</aside>
+<p class="reminder-status" data-reminder-status role="status" aria-live="polite"></p>
+
 <table class="schedule">
     <thead>
         <tr>
             <th>Время</th>
             <th>Фильм</th>
+            <th>Напоминание</th>
         </tr>
     </thead>
     <tbody>
@@ -20,10 +30,81 @@
         <tr>
             <td><span class="time">{{ row.time }}</span></td>
             <td><a href="{{ url_for('film', film_id=row.film.id) }}">{{ row.film.title }}</a></td>
+            <td>
+                <button class="reminder-button" type="button" data-reminder data-film-id="{{ row.film.id }}" data-title="{{ row.film.title }}" data-time="{{ row.time }}" data-active="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+                    <span data-reminder-label>Напомнить</span>
+                </button>
+            </td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 
 <p>Расписание может меняться. Актуальные сеансы уточняйте в кассе кинотеатра.</p>
+<script>
+const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+const reminderButtons = [...document.querySelectorAll('[data-reminder]')];
+const reminderStatus = document.querySelector('[data-reminder-status]');
+const reminderTimers = new Map();
+const setReminderState = (button, active) => {
+    button.dataset.active = String(active);
+    button.querySelector('[data-reminder-label]').textContent = active ? 'Включено' : 'Напомнить';
+};
+const setReminderMessage = message => { reminderStatus.textContent = message; };
+const scheduleBrowserNotification = button => {
+    const reminderId = `${button.dataset.filmId}:${button.dataset.time}`;
+    window.clearTimeout(reminderTimers.get(reminderId));
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const [hours, minutes] = button.dataset.time.split(':').map(Number);
+    const target = new Date();
+    target.setHours(hours, minutes - 15, 0, 0);
+    const delay = target.getTime() - Date.now();
+    if (delay <= 0 || delay > 2147483647) return;
+    reminderTimers.set(reminderId, window.setTimeout(() => {
+        new Notification('Сеанс скоро начнётся', {body: `${button.dataset.title} — в ${button.dataset.time}`});
+    }, delay));
+};
+
+fetch('/api/reminders')
+    .then(response => response.ok ? response.json() : Promise.reject())
+    .then(reminders => reminderButtons.forEach(button => {
+        const reminderId = `${button.dataset.filmId}:${button.dataset.time}`;
+        const active = reminders.some(item => item.id === reminderId);
+        setReminderState(button, active);
+        if (active) scheduleBrowserNotification(button);
+    }))
+    .catch(() => {
+        reminderButtons.forEach(button => { button.querySelector('[data-reminder-label]').textContent = 'Недоступно'; });
+        setReminderMessage('Не удалось загрузить напоминания. Обновите страницу.');
+    });
+
+reminderButtons.forEach(button => {
+    const payload = {film_id: Number(button.dataset.filmId), time: button.dataset.time};
+    button.addEventListener('click', async () => {
+        if (button.disabled) return;
+        button.disabled = true;
+        const isActive = button.dataset.active === 'true';
+        const method = isActive ? 'DELETE' : 'POST';
+        const response = await fetch('/api/reminders', {method, headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken}, body: JSON.stringify(payload)});
+        button.disabled = false;
+        if (!response.ok) { setReminderMessage('Не удалось изменить напоминание. Попробуйте ещё раз.'); return; }
+        const reminderId = `${button.dataset.filmId}:${button.dataset.time}`;
+        if (isActive) {
+            window.clearTimeout(reminderTimers.get(reminderId));
+            reminderTimers.delete(reminderId);
+            setReminderState(button, false);
+            setReminderMessage(`Напоминание о сеансе «${button.dataset.title}» отключено.`);
+            return;
+        }
+        if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
+        setReminderState(button, true);
+        scheduleBrowserNotification(button);
+        const notificationNote = 'Notification' in window && Notification.permission === 'granted'
+            ? ' Уведомление появится за 15 минут при открытой вкладке.'
+            : ' Разрешите уведомления браузера, чтобы получить сигнал.';
+        setReminderMessage(`Напоминание о сеансе «${button.dataset.title}» сохранено.${notificationNote}`);
+    });
+});
+</script>
 {% endblock %}
