@@ -6,13 +6,16 @@
 <style>
     .films-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(210px, 250px));
         gap: 24px;
         margin-top: 28px;
+        justify-content: start;
     }
 
     .film-card {
         display: flex;
+        width: 100%;
+        min-width: 0;
         flex-direction: column;
         overflow: hidden;
         background: var(--surface);
@@ -41,6 +44,11 @@
     }
 
     .film-title {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        min-height: 44px;
         margin: 0 0 8px;
         color: var(--ink);
         font-family: 'Unbounded', 'Rubik', sans-serif;
@@ -49,6 +57,11 @@
     }
 
     .film-genre {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        min-height: 44px;
         margin: 0;
         color: var(--muted);
         text-transform: capitalize;
@@ -61,6 +74,11 @@
         border: 1px solid var(--line);
         border-radius: 14px;
     }
+
+    .catalog-controls { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+    .catalog-controls label { display: grid; gap: 5px; color: var(--muted); font-size: 13px; }
+    .catalog-controls select { min-width: 150px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); }
+    .film-card[hidden] { display: none; }
 </style>
 {% endblock %}
 
@@ -68,18 +86,26 @@
 <h1>Афиша</h1>
 <p class="subtitle">Фильмы, которые сейчас идут в нашем кинотеатре.</p>
 
+<div class="catalog-controls">
+    <label>Жанр <select data-filter-genre><option value="">Все жанры</option><option>аниме</option><option>драма</option><option>комедия</option><option>мультфильм</option><option>ужасы</option><option>фантастика</option><option>фэнтези</option></select></label>
+    <label>Возраст <select data-filter-age><option value="">Любой</option><option>12+</option><option>16+</option></select></label>
+    <label>Сортировка <select data-sort-films><option value="popular">По популярности</option><option value="new">Сначала новые</option><option value="title">По названию</option></select></label>
+</div>
+
 {% if films %}
-<div class="films-grid">
+<div class="films-grid" data-films-grid>
     {% for movie in films %}
-    <a class="film-card" href="{{ url_for('film', film_id=movie.id) }}">
+    <a class="film-card" href="{{ url_for('film', film_id=movie.id) }}" data-film-card data-genre="{{ movie.genre|lower }}" data-age="{{ movie.age }}" data-year="{{ movie.year }}" data-popularity="{{ movie.popularity }}" data-title="{{ movie.title|lower }}">
         <img
             class="film-poster"
             src="{{ url_for('static', filename='images/' ~ movie.poster) }}"
             alt="Постер фильма «{{ movie.title }}»"
+            loading="lazy"
+            decoding="async"
         >
         <div class="film-info">
-            <h2 class="film-title">{{ movie.title }}</h2>
-            <p class="film-genre">{{ movie.genre }}</p>
+            <h2 class="film-title" title="{{ movie.title }}">{{ movie.title }}</h2>
+            <p class="film-genre" title="{{ movie.genre }} · {{ movie.age }} · {{ movie.year }}">{{ movie.genre }} · {{ movie.age }} · {{ movie.year }}</p>
         </div>
     </a>
     {% endfor %}
@@ -87,4 +113,21 @@
 {% else %}
 <p class="empty">Сейчас в афише нет фильмов.</p>
 {% endif %}
+<script>
+const grid = document.querySelector('[data-films-grid]');
+if (grid) {
+    const genre = document.querySelector('[data-filter-genre]');
+    const age = document.querySelector('[data-filter-age]');
+    const sort = document.querySelector('[data-sort-films]');
+    const cards = [...grid.querySelectorAll('[data-film-card]')];
+    const updateCatalog = () => {
+        const filtered = cards.filter(card => (!genre.value || card.dataset.genre.includes(genre.value)) && (!age.value || card.dataset.age === age.value));
+        filtered.sort((a, b) => sort.value === 'new' ? b.dataset.year - a.dataset.year : sort.value === 'title' ? a.dataset.title.localeCompare(b.dataset.title, 'ru') : b.dataset.popularity - a.dataset.popularity);
+        cards.forEach(card => card.hidden = !filtered.includes(card));
+        filtered.forEach(card => grid.appendChild(card));
+    };
+    [genre, age, sort].forEach(control => control.addEventListener('change', updateCatalog));
+    updateCatalog();
+}
+</script>
 {% endblock %}

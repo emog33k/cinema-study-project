@@ -5,8 +5,131 @@
 {% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
 
 {% block content %}
-<h1>Кинотеатр</h1>
-<p class="subtitle">Афиша, расписание сеансов и контакты кинотеатра.</p>
+<section class="hero">
+    <div>
+        <p class="eyebrow">Ваш следующий сеанс</p>
+        <h1>Кино, которое хочется смотреть</h1>
+        <p class="subtitle">Выбирайте фильм, находите удобный сеанс и наслаждайтесь атмосферой большого экрана.</p>
+        <div class="hero-actions">
+            <a class="btn" href="{{ url_for('films') }}">Смотреть афишу</a>
+            <a class="btn btn-secondary" href="{{ url_for('schedule') }}">Расписание</a>
+        </div>
+    </div>
+    <img src="{{ url_for('static', filename='images/example.webp') }}" alt="Атмосфера кинотеатра" class="home-banner">
+</section>
 
-<img src="{{ url_for('static', filename='images/example.webp') }}" alt="Кинотеатр" class="home-banner">
+<section class="home-section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">На большом экране</p>
+            <h2>Сейчас в кино</h2>
+        </div>
+        <a href="{{ url_for('films') }}">Вся афиша →</a>
+    </div>
+
+    <div class="film-slider-shell">
+        <button class="slider-button slider-button-prev" type="button" data-slider-prev aria-label="Предыдущие фильмы">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7M8 12h11"/></svg>
+        </button>
+        <div class="film-scroller" data-film-slider tabindex="0">
+            {% for movie in films %}
+            <a class="home-film-card" href="{{ url_for('film', film_id=movie.id) }}">
+                <img src="{{ url_for('static', filename='images/' ~ movie.poster) }}" alt="Постер фильма «{{ movie.title }}»" loading="lazy" decoding="async">
+                <div class="home-film-info">
+                    <h3>{{ movie.title }}</h3>
+                    <p>{{ movie.genre }}</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        <button class="slider-button slider-button-next" type="button" data-slider-next aria-label="Следующие фильмы">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7M5 12h11"/></svg>
+        </button>
+    </div>
+</section>
+
+<script>
+    const slider = document.querySelector('[data-film-slider]');
+    const previousButton = document.querySelector('[data-slider-prev]');
+    const nextButton = document.querySelector('[data-slider-next]');
+
+    if (slider && previousButton && nextButton) {
+        const originalCards = [...slider.querySelectorAll('.home-film-card')];
+        originalCards.forEach(card => slider.appendChild(card.cloneNode(true)));
+        originalCards.forEach(card => slider.appendChild(card.cloneNode(true)));
+        let loopWidth = slider.scrollWidth / 3;
+        slider.scrollLeft = loopWidth;
+
+        const slideDistance = () => {
+            const card = slider.querySelector('.home-film-card');
+            return card ? card.getBoundingClientRect().width + 20 : 230;
+        };
+
+        const normalizePosition = () => {
+            if (slider.scrollLeft >= loopWidth * 2) slider.scrollLeft -= loopWidth;
+            if (slider.scrollLeft <= 0) slider.scrollLeft += loopWidth;
+        };
+
+        let isMoving = false;
+        let movementTimer;
+        const moveSlider = (direction) => {
+            if (isMoving) return false;
+            isMoving = true;
+            const nextPosition = slider.scrollLeft + direction * slideDistance();
+            slider.scrollTo({ left: nextPosition, behavior: 'smooth' });
+            window.clearTimeout(movementTimer);
+            movementTimer = window.setTimeout(() => { isMoving = false; }, 520);
+            return true;
+        };
+
+        let restartTimer;
+        const handleManualMove = direction => {
+            stopAutoScroll();
+            if (moveSlider(direction)) {
+                window.clearTimeout(restartTimer);
+                restartTimer = window.setTimeout(startAutoScroll, 1000);
+            }
+        };
+        previousButton.addEventListener('click', () => handleManualMove(-1));
+        nextButton.addEventListener('click', () => handleManualMove(1));
+        slider.addEventListener('scroll', normalizePosition, { passive: true });
+        window.addEventListener('resize', () => { loopWidth = slider.scrollWidth / 3; });
+
+        let autoScroll;
+        const startAutoScroll = () => {
+            stopAutoScroll();
+            autoScroll = setInterval(() => {
+                moveSlider(1);
+            }, 4200);
+        };
+        const stopAutoScroll = () => clearInterval(autoScroll);
+
+        slider.addEventListener('mouseenter', stopAutoScroll);
+        slider.addEventListener('mouseleave', startAutoScroll);
+        slider.addEventListener('focusin', stopAutoScroll);
+        slider.addEventListener('focusout', startAutoScroll);
+        startAutoScroll();
+    }
+</script>
+
+<section class="home-section upcoming">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Не пропустите</p>
+            <h2>Ближайшие сеансы</h2>
+        </div>
+        <a href="{{ url_for('schedule') }}">Всё расписание →</a>
+    </div>
+
+    <div class="session-list">
+        {% for row in schedule[:4] %}
+        <a class="session-row" href="{{ url_for('film', film_id=row.film.id) }}">
+            <span class="time">{{ row.time }}</span>
+            <span>{{ row.film.title }}</span>
+            <span class="session-arrow" aria-hidden="true">→</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+
 {% endblock %}
